@@ -3,6 +3,7 @@ import sys
 import pygame
 
 from trail_biker.assets.game_metadata import GameMetadata
+from trail_biker.config import LEVELS_PATH
 from trail_biker.config import METADATA_PATH
 from trail_biker.config import FPS
 from trail_biker.config import RESOURCES
@@ -28,6 +29,10 @@ def main() -> None:
     if not METADATA_PATH.is_file():
         print(f"Missing metadata: {METADATA_PATH}", file=sys.stderr)
         print("Run: python tools/metadata_mono_to_json.py", file=sys.stderr)
+        sys.exit(1)
+    if not LEVELS_PATH.is_file():
+        print(f"Missing levels: {LEVELS_PATH}", file=sys.stderr)
+        print("Run: python tools/levels_dat_to_json.py", file=sys.stderr)
         sys.exit(1)
     metadata = GameMetadata.load(METADATA_PATH)
     manager = LevelManager(metadata)

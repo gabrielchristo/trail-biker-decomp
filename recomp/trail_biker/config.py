@@ -11,6 +11,7 @@ ROOT = Path(__file__).resolve().parent.parent
 RESOURCES = ROOT / "resources"
 SAVES = ROOT / "saves"
 METADATA_PATH = RESOURCES / "metadata_mono.json"
+LEVELS_PATH = RESOURCES / "levels.json"
 
 
 def default_screen_size() -> tuple[int, int]:

@@ -1,5 +1,5 @@
-from trail_biker.assets.binary_asset import BinaryAsset
-from trail_biker.config import RESOURCES
+from trail_biker.assets.game_levels import GameLevels
+from trail_biker.config import LEVELS_PATH
 
 
 def _ubyte(value: int) -> int:
@@ -12,7 +12,11 @@ def _dim_pair(high: int, low: int) -> int:
 
 class LevelStore:
     def __init__(self) -> None:
-        self.levels_asset = BinaryAsset(RESOURCES / "levels.dat")
+        if not LEVELS_PATH.is_file():
+            raise FileNotFoundError(
+                f"Missing {LEVELS_PATH}; run: python tools/levels_dat_to_json.py"
+            )
+        self.levels_asset = GameLevels.load(LEVELS_PATH)
         self.level_record_offsets: list[int] = []
         self._parse_level_offsets()
 
