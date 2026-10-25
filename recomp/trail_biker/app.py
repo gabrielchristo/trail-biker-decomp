@@ -2,7 +2,8 @@ import sys
 
 import pygame
 
-from trail_biker.assets.binary_asset import BinaryAsset
+from trail_biker.assets.game_metadata import GameMetadata
+from trail_biker.config import METADATA_PATH
 from trail_biker.config import FPS
 from trail_biker.config import RESOURCES
 from trail_biker.config import SCALE
@@ -24,7 +25,11 @@ def main() -> None:
     screen_w, screen_h = default_screen_size()
     pygame.display.set_mode((screen_w * SCALE, screen_h * SCALE))
     pygame.display.set_caption("Trail Biker")
-    metadata = BinaryAsset(RESOURCES / "metadata_mono.dat")
+    if not METADATA_PATH.is_file():
+        print(f"Missing metadata: {METADATA_PATH}", file=sys.stderr)
+        print("Run: python tools/metadata_mono_to_json.py", file=sys.stderr)
+        sys.exit(1)
+    metadata = GameMetadata.load(METADATA_PATH)
     manager = LevelManager(metadata)
     window = pygame.display.get_surface()
     clock = pygame.time.Clock()

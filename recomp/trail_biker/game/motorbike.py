@@ -1,6 +1,6 @@
 import pygame
 
-from trail_biker.assets.binary_asset import BinaryAsset
+from trail_biker.assets.game_metadata import GameMetadata
 from trail_biker.config import DEVICE_PROFILE_ID
 from trail_biker.config import RESOURCES
 from trail_biker.gfx.images import load_logical_image
@@ -10,7 +10,7 @@ BIKE_CRASH_FRAME = 21
 
 
 class Motorbike:
-    def __init__(self, screen_x: int, screen_y: int, metadata: BinaryAsset) -> None:
+    def __init__(self, screen_x: int, screen_y: int, metadata: GameMetadata) -> None:
         self.screen_x = screen_x
         self.screen_y = screen_y
         self.game_metadata = metadata

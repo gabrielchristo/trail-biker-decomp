@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pygame
 
-from trail_biker.assets.binary_asset import BinaryAsset
+from trail_biker.assets.game_metadata import GameMetadata
 from trail_biker.config import SCALE
 from trail_biker.config import default_screen_size
 from trail_biker.game.game_canvas import GameCanvas
@@ -31,7 +31,7 @@ def _cup_tier_label(tier: int) -> str | None:
 
 
 class LevelManager:
-    def __init__(self, metadata: BinaryAsset) -> None:
+    def __init__(self, metadata: GameMetadata) -> None:
         self.level_store = LevelStore()
         self.progress = ProgressStore(self.level_store)
         self.sound_manager = SoundManager()

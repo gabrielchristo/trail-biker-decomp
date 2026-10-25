@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import pygame
 
-from trail_biker.assets.binary_asset import BinaryAsset
+from trail_biker.assets.game_metadata import GameMetadata
 from trail_biker.config import DEVICE_PROFILE_ID
 from trail_biker.config import LOGIC_TICK_MS
 from trail_biker.config import VISUAL_INTERPOLATION
@@ -44,7 +44,7 @@ class _Present:
 class GameCanvas:
     def __init__(
         self,
-        metadata: BinaryAsset,
+        metadata: GameMetadata,
         level_store: LevelStore,
         level_manager: LevelManager | None = None,
         course_index: int = 0,

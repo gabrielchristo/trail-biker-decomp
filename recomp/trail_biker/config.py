@@ -10,6 +10,7 @@ VISUAL_INTERPOLATION = False
 ROOT = Path(__file__).resolve().parent.parent
 RESOURCES = ROOT / "resources"
 SAVES = ROOT / "saves"
+METADATA_PATH = RESOURCES / "metadata_mono.json"
 
 
 def default_screen_size() -> tuple[int, int]:
