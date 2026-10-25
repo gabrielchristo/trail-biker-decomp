@@ -48,3 +48,10 @@ class LevelStore:
             n += cols
             grid.append(row)
         return grid
+
+    def get_level_slot_count(self) -> int:
+        return _ubyte(self.levels_asset.data[0])
+
+    def get_par_time_ms(self, index: int) -> int:
+        off = self.level_record_offsets[index]
+        return (_ubyte(self.levels_asset.data[off]) * 60 + _ubyte(self.levels_asset.data[off + 1])) * 1000

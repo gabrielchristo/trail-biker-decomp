@@ -26,16 +26,33 @@ class ParallaxBackground:
                     self.layer_frame_indices[i] = 0
             self.scroll_offset_px = 0
 
+    def _blit_tiled(self, target: pygame.Surface, frame_index: int, origin_x: int, y: int) -> None:
+        width = target.get_width()
+        seg = self.segment_width_px
+        step = self.scroll_step_sign * seg
+        px = origin_x
+        while px < width:
+            if px + seg > 0:
+                self.sprite_sheet.draw_frame(frame_index, target, px, y)
+            px += step
+        px = origin_x - step
+        while px + seg > 0:
+            self.sprite_sheet.draw_frame(frame_index, target, px, y)
+            px -= step
+
     def paint(self, target: pygame.Surface, x: int, y: int) -> None:
+        width = target.get_width()
+        seg = self.segment_width_px
         if self.layer_count > 1:
-            for i in range(self.layer_count):
-                px = x - self.scroll_offset_px + i * self.scroll_step_sign * self.segment_width_px
-                self.sprite_sheet.draw_frame(self.layer_frame_indices[i], target, px, y)
+            span = self.layer_count * seg
+            base = x - self.scroll_offset_px
+            for k in range(-1, 3):
+                block_x = base + k * self.scroll_step_sign * span
+                for i in range(self.layer_count):
+                    px = block_x + i * self.scroll_step_sign * seg
+                    if px < width and px + seg > 0:
+                        self.sprite_sheet.draw_frame(self.layer_frame_indices[i], target, px, y)
         else:
-            self.sprite_sheet.draw_frame(self.layer_frame_indices[0], target, x - self.scroll_offset_px, y)
-            self.sprite_sheet.draw_frame(
-                self.layer_frame_indices[0],
-                target,
-                x - self.scroll_offset_px + self.scroll_step_sign * self.segment_width_px,
-                y,
-            )
+            origin = x - self.scroll_offset_px
+            idx = self.layer_frame_indices[0]
+            self._blit_tiled(target, idx, origin, y)
