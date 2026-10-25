@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from pathlib import Path
+
 import pygame
 
 from trail_biker.assets.game_sounds import GameSounds
@@ -45,23 +47,37 @@ class _SoundPlayer:
 class SoundManager:
     def __init__(self, resource: str = "/res/sound.dat") -> None:
         self._resource_path = resource
-        self._clips: list[pygame.mixer.Sound] = []
+        self._wav_paths: list[Path] = []
+        self._clips: list[pygame.mixer.Sound | None] = []
         self._player: _SoundPlayer | None = None
-        self._load_clips()
+        self._resolve_wav_paths()
 
-    def _load_clips(self) -> None:
+    def _resolve_wav_paths(self) -> None:
         _ = self._resource_path
-        paths = GameSounds.load_wav_paths(SOUND_PATH, RESOURCES)
-        self._clips = [pygame.mixer.Sound(str(path)) for path in paths]
+        self._wav_paths = GameSounds.load_wav_paths(SOUND_PATH, RESOURCES)
+        self._clips = [None] * len(self._wav_paths)
+
+    def preload_clips(self) -> None:
+        """Optional warm-up after display/assets are ready (same timing as old OTA init)."""
+        for index, path in enumerate(self._wav_paths):
+            if self._clips[index] is None:
+                self._clips[index] = pygame.mixer.Sound(str(path))
+
+    def _clip_for_index(self, index: int) -> pygame.mixer.Sound:
+        if index < 0 or index >= len(self._wav_paths):
+            raise SoundPlaybackError(f"sound index {index} out of range")
+        clip = self._clips[index]
+        if clip is None:
+            clip = pygame.mixer.Sound(str(self._wav_paths[index]))
+            self._clips[index] = clip
+        return clip
 
     def play_sound(self, index: int, enabled: bool = True, volume_percent: int = 100) -> None:
         if not enabled:
             return
-        if index < 0 or index >= len(self._clips):
-            raise SoundPlaybackError(f"sound index {index} out of range")
         if self._player is None:
             self._player = _SoundPlayer()
-        self._player.use_clip(self._clips[index])
+        self._player.use_clip(self._clip_for_index(index))
         gain = int(255 * max(0, min(100, volume_percent)) / 100)
         self._player.set_gain(gain)
         self._player.play(1)

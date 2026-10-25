@@ -156,6 +156,7 @@ class GameCanvas:
             self.sound_manager = self.level_manager.sound_manager
         else:
             self.sound_manager = SoundManager()
+        self.sound_manager.preload_clips()
         self.assets_loaded = True
 
     def configure_game_clock(self) -> None:
