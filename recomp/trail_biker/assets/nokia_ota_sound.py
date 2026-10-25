@@ -153,10 +153,17 @@ def decode_ota_chunk(chunk: bytes) -> list[NoteEvent]:
     return events
 
 
-def _synth_square(events: list[NoteEvent], sample_rate: int) -> bytes:
+def _synth_square(
+    events: list[NoteEvent],
+    sample_rate: int,
+    duration_scale: float = 1.0,
+) -> bytes:
+    if duration_scale <= 0:
+        raise OtaDecodeError(f"duration_scale must be positive, got {duration_scale}")
     pcm = bytearray()
     for ev in events:
-        samples = max(1, int(sample_rate * ev.duration_ms / 1000))
+        ms = ev.duration_ms * duration_scale
+        samples = max(1, int(sample_rate * ms / 1000))
         if ev.frequency_hz <= 0 or ev.volume <= 0:
             pcm.extend(b"\x80" * samples)
             continue
@@ -168,13 +175,22 @@ def _synth_square(events: list[NoteEvent], sample_rate: int) -> bytes:
     return bytes(pcm)
 
 
-def ota_to_pcm(chunk: bytes, sample_rate: int = NOKIA_SAMPLE_RATE) -> bytes:
-    return _synth_square(decode_ota_chunk(chunk), sample_rate)
+def ota_to_pcm(
+    chunk: bytes,
+    sample_rate: int = NOKIA_SAMPLE_RATE,
+    duration_scale: float = 1.0,
+) -> bytes:
+    return _synth_square(decode_ota_chunk(chunk), sample_rate, duration_scale)
 
 
-def ota_to_wav_bytes(chunk: bytes, sample_rate: int = NOKIA_SAMPLE_RATE, sound_index: int = -1) -> bytes:
+def ota_to_wav_bytes(
+    chunk: bytes,
+    sample_rate: int = NOKIA_SAMPLE_RATE,
+    sound_index: int = -1,
+    duration_scale: float = 1.0,
+) -> bytes:
     try:
-        pcm = ota_to_pcm(chunk, sample_rate)
+        pcm = ota_to_pcm(chunk, sample_rate, duration_scale)
     except OtaDecodeError as exc:
         label = f"sound[{sound_index}]" if sound_index >= 0 else "sound"
         raise OtaDecodeError(f"{label}: {exc} (hex={chunk.hex()})") from exc

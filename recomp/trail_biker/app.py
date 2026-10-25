@@ -3,8 +3,10 @@ import sys
 import pygame
 
 from trail_biker.assets.game_metadata import GameMetadata
+from trail_biker.assets.game_sounds import GameSounds
 from trail_biker.config import LEVELS_PATH
 from trail_biker.config import METADATA_PATH
+from trail_biker.config import SOUND_PATH
 from trail_biker.config import FPS
 from trail_biker.config import RESOURCES
 from trail_biker.config import SCALE
@@ -17,12 +19,10 @@ def main() -> None:
         print(f"Missing assets folder: {RESOURCES}", file=sys.stderr)
         print("Copy PNG/DAT files into recomp/resources/ (4x sprites OK).", file=sys.stderr)
         sys.exit(1)
-    from trail_biker.assets.nokia_ota_sound import NOKIA_SAMPLE_RATE
-
-    pygame.mixer.pre_init(frequency=NOKIA_SAMPLE_RATE, size=-8, channels=1, buffer=512)
+    pygame.mixer.pre_init(frequency=8000, size=-8, channels=1, buffer=512)
     pygame.init()
     if not pygame.mixer.get_init():
-        pygame.mixer.init(frequency=NOKIA_SAMPLE_RATE, size=-8, channels=1, buffer=512)
+        pygame.mixer.init(frequency=8000, size=-8, channels=1, buffer=512)
     screen_w, screen_h = default_screen_size()
     pygame.display.set_mode((screen_w * SCALE, screen_h * SCALE))
     pygame.display.set_caption("Trail Biker")
@@ -33,6 +33,14 @@ def main() -> None:
     if not LEVELS_PATH.is_file():
         print(f"Missing levels: {LEVELS_PATH}", file=sys.stderr)
         print("Run: python tools/levels_dat_to_json.py", file=sys.stderr)
+        sys.exit(1)
+    if not SOUND_PATH.is_file():
+        print(f"Missing sound manifest: {SOUND_PATH}", file=sys.stderr)
+        sys.exit(1)
+    try:
+        GameSounds.load_wav_paths(SOUND_PATH)
+    except (OSError, ValueError) as exc:
+        print(f"Sound assets: {exc}", file=sys.stderr)
         sys.exit(1)
     metadata = GameMetadata.load(METADATA_PATH)
     manager = LevelManager(metadata)

@@ -1,35 +1,28 @@
-"""Port of a.a.a.d.a: slice sound.dat, then Sound(data, FORMAT_TONE)."""
+"""Port of a.a.a.d.a: play indexed effects (recomp uses pre-rendered WAV in resources/)."""
 
 from __future__ import annotations
 
 import pygame
 
-from trail_biker.assets.binary_asset import BinaryAsset
-from trail_biker.assets.nokia_ota_sound import FORMAT_TONE
-from trail_biker.assets.nokia_ota_sound import NOKIA_SAMPLE_RATE
-from trail_biker.assets.nokia_ota_sound import OtaDecodeError
-from trail_biker.assets.nokia_ota_sound import ota_to_wav_bytes
+from trail_biker.assets.game_sounds import GameSounds
 from trail_biker.config import RESOURCES
+from trail_biker.config import SOUND_PATH
 
 
-class _NokiaSound:
-    """com.nokia.mid.sound.Sound for FORMAT_TONE, one clip at a time."""
+class SoundPlaybackError(ValueError):
+    pass
+
+
+class _SoundPlayer:
+    """One pygame channel, swap clip like com.nokia.mid.sound.Sound.init + play."""
 
     def __init__(self) -> None:
-        self._data: bytes | None = None
-        self._type = 0
         self._gain = 255
         self._clip: pygame.mixer.Sound | None = None
         self._channel: pygame.mixer.Channel | None = None
 
-    def init(self, data: bytes, sound_type: int) -> None:
-        if data is None:
-            raise OtaDecodeError("Sound.init data is null")
-        if sound_type != FORMAT_TONE:
-            raise OtaDecodeError(f"unsupported sound type {sound_type}")
-        self._data = data
-        self._type = sound_type
-        self._clip = pygame.mixer.Sound(buffer=ota_to_wav_bytes(data, NOKIA_SAMPLE_RATE))
+    def use_clip(self, clip: pygame.mixer.Sound) -> None:
+        self._clip = clip
         self._clip.set_volume(self._gain / 255.0)
 
     def set_gain(self, gain: int) -> None:
@@ -39,7 +32,7 @@ class _NokiaSound:
 
     def play(self, loop: int) -> None:
         if self._clip is None or loop < 0:
-            raise OtaDecodeError(f"Sound.play loop={loop}")
+            raise SoundPlaybackError(f"Sound.play loop={loop}")
         if self._channel is None:
             self._channel = pygame.mixer.find_channel(True)
         if self._channel is None:
@@ -51,45 +44,24 @@ class _NokiaSound:
 
 class SoundManager:
     def __init__(self, resource: str = "/res/sound.dat") -> None:
-        self._reserved_zero = 0
-        self._sound_data_type = FORMAT_TONE
-        self.sample_data: list[bytes] = []
-        self._nokia_sound: _NokiaSound | None = None
-        self._load_sounds_from_resource(resource)
+        self._resource_path = resource
+        self._clips: list[pygame.mixer.Sound] = []
+        self._player: _SoundPlayer | None = None
+        self._load_clips()
 
-    def _load_sounds_from_resource(self, resource: str) -> None:
-        # a.java: new BinaryAsset(s); count = data[0]; uint16 offsets at 1+i*2.
-        name = resource.rsplit("/", 1)[-1]
-        asset = BinaryAsset(RESOURCES / name)
-        count = asset.data[0]
-        if count < 0:
-            raise OtaDecodeError(f"sound count byte is negative ({count})")
-        self.sample_data = []
-        for index in range(count):
-            start = asset.uint16(1 + index * 2)
-            if index == count - 1:
-                end = len(asset.data)
-            else:
-                end = asset.uint16(1 + (index + 1) * 2)
-            length = end - start
-            if length < 0:
-                raise OtaDecodeError(f"sound[{index}] negative slice {start}..{end}")
-            sample = bytearray(length)
-            for i in range(length):
-                sample[i] = asset.data[start + i] & 0xFF
-            self.sample_data.append(bytes(sample))
+    def _load_clips(self) -> None:
+        _ = self._resource_path
+        paths = GameSounds.load_wav_paths(SOUND_PATH, RESOURCES)
+        self._clips = [pygame.mixer.Sound(str(path)) for path in paths]
 
     def play_sound(self, index: int, enabled: bool = True, volume_percent: int = 100) -> None:
         if not enabled:
             return
-        if index < 0 or index >= len(self.sample_data):
-            raise OtaDecodeError(f"sound index {index} out of range")
-        data = self.sample_data[index]
-        if self._nokia_sound is None:
-            self._nokia_sound = _NokiaSound()
-            self._nokia_sound.init(data, self._sound_data_type)
-        else:
-            self._nokia_sound.init(data, self._sound_data_type)
+        if index < 0 or index >= len(self._clips):
+            raise SoundPlaybackError(f"sound index {index} out of range")
+        if self._player is None:
+            self._player = _SoundPlayer()
+        self._player.use_clip(self._clips[index])
         gain = int(255 * max(0, min(100, volume_percent)) / 100)
-        self._nokia_sound.set_gain(gain)
-        self._nokia_sound.play(1)
+        self._player.set_gain(gain)
+        self._player.play(1)

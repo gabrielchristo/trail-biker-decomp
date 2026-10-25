@@ -12,6 +12,7 @@ RESOURCES = ROOT / "resources"
 SAVES = ROOT / "saves"
 METADATA_PATH = RESOURCES / "metadata_mono.json"
 LEVELS_PATH = RESOURCES / "levels.json"
+SOUND_PATH = RESOURCES / "sound.json"
 
 
 def default_screen_size() -> tuple[int, int]:
