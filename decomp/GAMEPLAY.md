@@ -347,4 +347,4 @@ Efeitos: dimensões de tela (+1 px em alguns casos), lean/hitbox, velocidade de 
 - Relógio: `a/a/a/a/a-reconstruct.java`, `a.md`
 - Som: `a/a/a/d/a-reconstruct.java`, `a.md`
 
-Para validar paridade no port Python, compare com `recomp/trail_biker/` — divergências conhecidas (intro `crashAnimActive`, save JSON vs RMS, menu Settings) devem ser documentadas no README do port, não neste arquivo.
+Para validar paridade no port Python, compare com `recomp/trail_biker/` — divergências conhecidas (save JSON vs RMS, menu Settings) devem ser documentadas no README do port. O port mantém `metadata[64]` ticks de intro com física parada e **só despausa o `GameClock` ao fim da intro** (o MIDlet original também não chama `tick()` nesse intervalo, mas o relógio de parede ancorado no `reset()` faria o primeiro `tick()` “pular” ~2 s se não houvesse compensação).
