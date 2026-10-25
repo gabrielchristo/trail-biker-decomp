@@ -1,0 +1,10 @@
+MicroEdition-Configuration: CLDC-1.0
+MicroEdition-Profile: MIDP-1.0
+MIDlet-Jar-Size: 37826
+MIDlet-Jar-URL: trailbiker.jar
+MIDlet-Version: 1.0.6
+Created-By: 1.4.1-rc (Sun Microsystems Inc.)
+MIDlet-1: Trail Biker, /res/icon.png,a.a.a.c.f
+MIDlet-Name: www.butkaj.com / www.butkaj.info
+MIDlet-Vendor: www.butkaj.com / www.butkaj.info
+Nokia-MIDlet-Category: Game
