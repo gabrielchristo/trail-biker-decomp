@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from dataclasses import dataclass
 from typing import TYPE_CHECKING
 
 import pygame
@@ -7,6 +8,7 @@ import pygame
 from trail_biker.assets.binary_asset import BinaryAsset
 from trail_biker.config import DEVICE_PROFILE_ID
 from trail_biker.config import LOGIC_TICK_MS
+from trail_biker.config import VISUAL_INTERPOLATION
 from trail_biker.config import RESOURCES
 from trail_biker.config import SCALE
 from trail_biker.config import default_screen_size
@@ -16,6 +18,7 @@ from trail_biker.game.motorbike import Motorbike
 from trail_biker.game.parallax_background import ParallaxBackground
 from trail_biker.game.terrain_level import TerrainLevel
 from trail_biker.gfx.images import load_logical_image
+from trail_biker.gfx.present import blit_logical
 from trail_biker.gfx.sprite_sheet import SpriteSheet
 from trail_biker import ui_strings as ui
 
@@ -25,6 +28,17 @@ if TYPE_CHECKING:
 
 def _ub(value: int) -> int:
     return value & 0xFF
+
+
+def _lerp(a: float, b: float, t: float) -> float:
+    return a + (b - a) * t
+
+
+@dataclass
+class _Present:
+    world_x: float
+    bike_y: float
+    parallax: float
 
 
 class GameCanvas:
@@ -81,8 +95,11 @@ class GameCanvas:
         self.race_finish_dispatched = False
         self.needs_background_clear = True
         self._banner_font: pygame.font.Font | None = None
+        self._hud = pygame.Surface((self.screen_width, self.screen_height), pygame.SRCALPHA)
         self._load_splash()
         self._logic_accum = 0.0
+        self._present_prev = _Present(0.0, 0.0, 0.0)
+        self._present_curr = _Present(0.0, 0.0, 0.0)
 
     @property
     def game_mode(self) -> int:
@@ -198,6 +215,38 @@ class GameCanvas:
             self.parallax_scroll_period >>= 1
             self.stunt_air_delay_threshold >>= 2
             self.trick_cooldown_max >>= 2
+        self._sync_present()
+
+    def _capture_present(self) -> _Present:
+        if not self.motorbike or not self.terrain or not self.parallax:
+            return _Present(0.0, 0.0, 0.0)
+        return _Present(
+            float(self.terrain.bike_world_x),
+            float(self.motorbike.screen_y),
+            float(self.parallax.scroll_unwrapped_px),
+        )
+
+    def _sync_present(self) -> None:
+        snap = self._capture_present()
+        self._present_prev = snap
+        self._present_curr = snap
+
+    def _present_t(self) -> float:
+        if LOGIC_TICK_MS <= 0:
+            return 1.0
+        return max(0.0, min(1.0, self._logic_accum / LOGIC_TICK_MS))
+
+    def _use_presentation(self) -> bool:
+        return (
+            VISUAL_INTERPOLATION
+            and self.splash_phase == -1
+            and self.playfield_ready
+            and self.motorbike is not None
+            and self.terrain is not None
+            and self.parallax is not None
+            and not self.crash_anim_active
+            and not self.end_game_flags
+        )
 
     def reset_stunt_lives(self) -> None:
         self.stunt_lives_lost = 0
@@ -617,30 +666,60 @@ class GameCanvas:
     def update(self, dt_ms: float) -> None:
         self._logic_accum += dt_ms
         while self._logic_accum >= LOGIC_TICK_MS:
-            self._logic_accum -= LOGIC_TICK_MS
+            if VISUAL_INTERPOLATION:
+                self._present_prev = self._capture_present()
             self.on_logic_tick()
+            if VISUAL_INTERPOLATION:
+                self._present_curr = self._capture_present()
+            self._logic_accum -= LOGIC_TICK_MS
 
-    def draw_centered_banner(self, text: str) -> None:
+    def draw_centered_banner(self, text: str, surface: pygame.Surface | None = None) -> None:
+        dest = self.logical if surface is None else surface
         if self._banner_font is None:
             self._banner_font = pygame.font.SysFont(None, 16)
         w, h = self.screen_width, self.screen_height // 3
         y0 = self.screen_height // 2 - h // 2
-        pygame.draw.rect(self.logical, (0, 0, 0), (0, y0, w, h))
-        pygame.draw.rect(self.logical, (255, 255, 255), (0, y0, w, h), 1)
+        pygame.draw.rect(dest, (0, 0, 0), (0, y0, w, h))
+        pygame.draw.rect(dest, (255, 255, 255), (0, y0, w, h), 1)
         surf = self._banner_font.render(text, True, (255, 255, 255))
-        self.logical.blit(surf, (w // 2 - surf.get_width() // 2, y0 + h // 2 - surf.get_height() // 2))
+        dest.blit(surf, (w // 2 - surf.get_width() // 2, y0 + h // 2 - surf.get_height() // 2))
 
-    def draw_stunt_lives(self) -> None:
+    def draw_stunt_lives(self, surface: pygame.Surface | None = None) -> None:
+        dest = self.logical if surface is None else surface
         if self.game_mode != 2 or not self.lives_image:
             return
         n = self.stunt_lives_total - self.stunt_lives_lost - 1
         n2 = self.lives_image.get_width() + 2
         x = self.screen_width - n * n2
         for _ in range(n):
-            self.logical.blit(self.lives_image, (x, 0))
+            dest.blit(self.lives_image, (x, 0))
             x += n2
 
+    def _draw_presented(self, target: pygame.Surface) -> None:
+        assert self.motorbike is not None and self.terrain is not None and self.parallax is not None
+        t = self._present_t()
+        prev = self._present_prev
+        curr = self._present_curr
+        world_x = _lerp(prev.world_x, curr.world_x, t)
+        bike_y = _lerp(prev.bike_y, curr.bike_y, t)
+        parallax = _lerp(prev.parallax, curr.parallax, t)
+        target.fill((255, 255, 255))
+        self.parallax.paint_unwrapped(target, 0, 0, parallax, self.screen_width)
+        self.terrain.paint_camera(target, world_x)
+        if not self.ramp_landing_active:
+            frame = self.motorbike.bike_sprites.frame_surface(self.motorbike.current_frame())
+            blit_logical(target, frame, self.motorbike.screen_x, bike_y - self.motorbike.sprite_height)
+        self._hud.fill((0, 0, 0, 0))
+        self.game_clock.paint(self._hud, 0, 0)
+        self.draw_stunt_lives(self._hud)
+        hud = pygame.transform.scale(self._hud, (self.screen_width * SCALE, self.screen_height * SCALE))
+        target.blit(hud, (0, 0))
+        self.needs_background_clear = False
+
     def draw(self, target: pygame.Surface) -> None:
+        if self._use_presentation():
+            self._draw_presented(target)
+            return
         self.logical.fill((0, 0, 0))
         if self.splash_phase != -1 and self.splash_sprites:
             y = self.screen_height // 2 - self.splash_sprites.frame_height // 2

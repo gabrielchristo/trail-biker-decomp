@@ -96,14 +96,20 @@ class Motorbike:
             self.pose_variant = 0
             self.current_lean = 0
 
-    def paint(self, target: pygame.Surface) -> None:
+    def current_frame(self) -> int:
         if self.bike_state == 5:
-            frame = BIKE_CRASH_FRAME
-        elif self.in_air_trick:
-            frame = self.trick_frame_index
-        else:
-            frame = self.pose_frame_index + 3
-        self.bike_sprites.draw_frame(frame, target, self.screen_x, self.screen_y - self.sprite_height)
+            return BIKE_CRASH_FRAME
+        if self.in_air_trick:
+            return self.trick_frame_index
+        return self.pose_frame_index + 3
+
+    def paint(self, target: pygame.Surface) -> None:
+        self.bike_sprites.draw_frame(
+            self.current_frame(),
+            target,
+            self.screen_x,
+            self.screen_y - self.sprite_height,
+        )
 
     def advance_air_trick(self, hop_impulse: int, reset_trick_frame: bool) -> None:
         if not self.in_air_trick:

@@ -4,6 +4,8 @@ SCALE = 4
 DEVICE_PROFILE_ID = 4
 LOGIC_TICK_MS = 100
 FPS = 60
+# Draw between 100 ms logic ticks. Physics stays on LOGIC_TICK_MS.
+VISUAL_INTERPOLATION = False
 
 ROOT = Path(__file__).resolve().parent.parent
 RESOURCES = ROOT / "resources"

@@ -1,6 +1,7 @@
 import pygame
 
 from trail_biker.gfx.images import load_logical_image
+from trail_biker.gfx.present import blit_logical
 from trail_biker.gfx.sprite_sheet import SpriteSheet
 
 
@@ -11,10 +12,12 @@ class ParallaxBackground:
         self.sprite_sheet = SpriteSheet(source, 1, layer_count, clipped_mode)
         self.layer_frame_indices = list(range(layer_count))
         self.scroll_offset_px = 0
+        self.scroll_unwrapped_px = 0.0
         self.scroll_step_sign = 1
         self.segment_width_px = self.sprite_sheet.frame_width
 
     def scroll_by(self, delta: int) -> None:
+        self.scroll_unwrapped_px += delta
         self.scroll_offset_px += delta
         self.scroll_step_sign = -1 if self.scroll_offset_px < 0 else 1
         if self.scroll_offset_px <= -self.segment_width_px or self.scroll_offset_px >= self.segment_width_px:
@@ -56,3 +59,51 @@ class ParallaxBackground:
             origin = x - self.scroll_offset_px
             idx = self.layer_frame_indices[0]
             self._blit_tiled(target, idx, origin, y)
+
+    def _presentation(self, unwrapped: float) -> tuple[float, int, list[int]]:
+        seg = float(self.segment_width_px)
+        if seg <= 0:
+            return 0.0, 1, list(self.layer_frame_indices)
+        if unwrapped >= 0:
+            wraps = int(unwrapped // seg)
+            offset = unwrapped - wraps * seg
+        else:
+            wraps = -int((-unwrapped) // seg)
+            offset = unwrapped - wraps * seg
+        indices = [(i + wraps) % self.layer_count for i in range(self.layer_count)]
+        sign = -1 if offset < 0 else 1
+        return offset, sign, indices
+
+    def paint_unwrapped(
+        self,
+        target: pygame.Surface,
+        x: float,
+        y: float,
+        unwrapped: float,
+        logical_width: int,
+    ) -> None:
+        offset, sign, indices = self._presentation(unwrapped)
+        width = logical_width
+        seg = self.segment_width_px
+        if self.layer_count > 1:
+            span = self.layer_count * seg
+            base = x - offset
+            for k in range(-1, 3):
+                block_x = base + k * sign * span
+                for i in range(self.layer_count):
+                    px = block_x + i * sign * seg
+                    if px < width and px + seg > 0:
+                        blit_logical(target, self.sprite_sheet.frame_surface(indices[i]), px, y)
+        else:
+            frame = self.sprite_sheet.frame_surface(indices[0])
+            step = sign * seg
+            origin = x - offset
+            px = origin
+            while px < width:
+                if px + seg > 0:
+                    blit_logical(target, frame, px, y)
+                px += step
+            px = origin - step
+            while px + seg > 0:
+                blit_logical(target, frame, px, y)
+                px -= step

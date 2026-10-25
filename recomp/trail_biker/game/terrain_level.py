@@ -1,10 +1,14 @@
 from __future__ import annotations
 
+import math
+
 import pygame
 
 from trail_biker.game.levels import _dim_pair
 from trail_biker.game.levels import _ubyte
 from trail_biker.game.scrolling_tile_layer import ScrollingTileLayer
+from trail_biker.gfx.present import blit_logical
+from trail_biker.gfx.present import fill_logical
 from trail_biker.gfx.sprite_sheet import SpriteSheet
 
 PROBE_TILE_ADJUST = -128
@@ -181,6 +185,33 @@ class TerrainLevel:
 
     def paint(self, target: pygame.Surface) -> None:
         self.scroll_layer.paint(target)
+
+    def paint_camera(self, target: pygame.Surface, camera_world_x: float) -> None:
+        layer = self.scroll_layer
+        tile = self.tile_size_px
+        if tile <= 0 or self.expanded_tile_map is None:
+            layer.paint(target)
+            return
+        origin = camera_world_x - self.min_bike_world_x
+        width = layer.track_width_px
+        first = math.floor(origin / tile) - 1
+        last = math.floor((origin + width) / tile) + 1
+        rows = layer.buffer_row_count
+        map_h = len(self.expanded_tile_map)
+        map_w = self.expanded_map_width_tiles
+        color = layer._rgb(layer.empty_tile_fill_color)
+        for col in range(first, last + 1):
+            sx = col * tile - origin
+            for row in range(rows):
+                sy = layer.draw_anchor_y + row * tile
+                if row >= map_h or col < 0 or col >= map_w:
+                    fill_logical(target, color, sx, sy, tile, tile)
+                    continue
+                tile_id = self.expanded_tile_map[row][col] & 0xFF
+                if tile_id == 0:
+                    fill_logical(target, color, sx, sy, tile, tile)
+                else:
+                    blit_logical(target, layer.tile_sprites.frame_surface(tile_id - 1), sx, sy)
 
     def probe_terrain_at(self, x: int, y: int, ignore_pass_through: bool, allow_above: bool) -> int:
         result = 0

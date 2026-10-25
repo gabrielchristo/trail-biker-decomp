@@ -23,6 +23,7 @@ class SpriteSheet:
         self.frame_width = self.sheet_width // grid_columns
         self.source_image = source
         self.sliced_frames: list[pygame.Surface] | None = None
+        self._frame_surfaces: dict[int, pygame.Surface] = {}
         if not clipped_mode:
             self.sliced_frames = []
             index = 0
@@ -38,6 +39,24 @@ class SpriteSheet:
                     frame.blit(source, (0, 0), rect)
                     self.sliced_frames.append(frame)
                     index += 1
+
+    def frame_surface(self, frame_index: int) -> pygame.Surface:
+        cached = self._frame_surfaces.get(frame_index)
+        if cached is not None:
+            return cached
+        surf = pygame.Surface((self.frame_width, self.frame_height), pygame.SRCALPHA)
+        if self.clipped_mode:
+            col = frame_index // self.grid_rows
+            row = frame_index % self.grid_rows
+            surf.blit(
+                self.source_image,
+                (0, 0),
+                pygame.Rect(col * self.frame_width, row * self.frame_height, self.frame_width, self.frame_height),
+            )
+        elif self.sliced_frames is not None:
+            surf.blit(self.sliced_frames[frame_index], (0, 0))
+        self._frame_surfaces[frame_index] = surf
+        return surf
 
     def draw_frame(self, frame_index: int, target: pygame.Surface, x: int, y: int) -> None:
         if not self.clipped_mode:
