@@ -69,33 +69,33 @@ public class GameClock
         this.paused = paused;
     }
     
-    public void paint(final Graphics graphics, final int n, final int n2) {
-        final int n3 = (int)(this.displayTimeMs / 1000L) % 60;
-        final int n4 = (int)(this.displayTimeMs / 1000L) / 60;
-        final int n5 = 3;
-        this.digitSprites.a(n4, graphics, n, n2);
-        this.digitSprites.a(10, graphics, n + n5, n2);
-        this.digitSprites.a(n3 / 10, graphics, n + n5 * 2, n2);
-        this.digitSprites.a(n3 % 10, graphics, n + n5 * 3, n2);
+    public void paint(final Graphics graphics, final int x, final int y) {
+        final int seconds = (int)(this.displayTimeMs / 1000L) % 60;
+        final int minutes = (int)(this.displayTimeMs / 1000L) / 60;
+        final int digitSpacing = 3;
+        this.digitSprites.drawFrame(minutes, graphics, x, y);
+        this.digitSprites.drawFrame(10, graphics, x + digitSpacing, y);
+        this.digitSprites.drawFrame(seconds / 10, graphics, x + digitSpacing * 2, y);
+        this.digitSprites.drawFrame(seconds % 10, graphics, x + digitSpacing * 3, y);
         if (this.showCentiseconds) {
-            final int n6 = (int)(this.displayTimeMs / 10L) % 100;
-            this.digitSprites.a(10, graphics, n + n5 * 4, n2);
-            this.digitSprites.a(n6 / 10, graphics, n + n5 * 5, n2);
-            this.digitSprites.a(n6 % 10, graphics, n + n5 * 6, n2);
+            final int centiseconds = (int)(this.displayTimeMs / 10L) % 100;
+            this.digitSprites.drawFrame(10, graphics, x + digitSpacing * 4, y);
+            this.digitSprites.drawFrame(centiseconds / 10, graphics, x + digitSpacing * 5, y);
+            this.digitSprites.drawFrame(centiseconds % 10, graphics, x + digitSpacing * 6, y);
         }
     }
     
     public int getPaintWidth() {
-        final int if1 = this.digitSprites.if;
-        final int n = 3;
-        int n2 = 4 * (if1 + n);
+        final int digitWidth = this.digitSprites.frameWidth;
+        final int digitSpacing = 3;
+        int width = 4 * (digitWidth + digitSpacing);
         if (this.showCentiseconds) {
-            n2 += 3 * (if1 + n);
+            width += 3 * (digitWidth + digitSpacing);
         }
-        return n2;
+        return width;
     }
     
     public int getPaintHeight() {
-        return this.digitSprites.do;
+        return this.digitSprites.frameHeight;
     }
 }

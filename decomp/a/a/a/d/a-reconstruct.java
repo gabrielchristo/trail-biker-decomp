@@ -19,22 +19,22 @@ public class SoundManager
     }
     
     protected void loadSoundsFromResource(final String s) {
-        final BinaryAsset a = new BinaryAsset(s);
-        final byte b = a.data[0];
+        final BinaryAsset asset = new BinaryAsset(s);
+        final byte b = asset.data[0];
         this.sampleData = new byte[b][];
         for (byte b2 = 0; b2 < b; ++b2) {
-            final int if1 = a.getUInt16(1 + b2 * 2);
-            int n;
+            final int chunkOffset = asset.getUInt16(1 + b2 * 2);
+            int chunkEnd;
             if (b2 == b - 1) {
-                n = a.data.length;
+                chunkEnd = asset.data.length;
             }
             else {
-                n = a.getUInt16(1 + (b2 + 1) * 2);
+                chunkEnd = asset.getUInt16(1 + (b2 + 1) * 2);
             }
-            final int n2 = n - if1;
-            this.sampleData[b2] = new byte[n2];
-            for (int i = 0; i < n2; ++i) {
-                this.sampleData[b2][i] = a.data[if1 + i];
+            final int chunkLength = chunkEnd - chunkOffset;
+            this.sampleData[b2] = new byte[chunkLength];
+            for (int i = 0; i < chunkLength; ++i) {
+                this.sampleData[b2][i] = asset.data[chunkOffset + i];
             }
         }
     }

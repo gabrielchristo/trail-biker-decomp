@@ -36,10 +36,10 @@ public class LevelManager implements CommandListener
     public int volumePercent;
     public boolean pauseOverlayActive;
     
-    public LevelManager(final TrailBikerMidlet for1) {
+    public LevelManager(final TrailBikerMidlet midlet) {
         super();
-        this.midlet = for1;
-        this.gameCanvas = new GameCanvas(for1, this);
+        this.midlet = midlet;
+        this.gameCanvas = new GameCanvas(midlet, this);
         this.levelsAsset = new BinaryAsset("/res/levels.dat");
         this.parseLevelOffsets();
         this.loadProgressFromRms();
@@ -49,7 +49,7 @@ public class LevelManager implements CommandListener
         this.hideContinueItem = true;
         this.menuScreenId = 1;
         this.menuList = null;
-        this.gameCanvas.goto();
+        this.gameCanvas.startGameLoopTimer();
         this.showCanvas();
     }
     
@@ -125,7 +125,7 @@ public class LevelManager implements CommandListener
             this.bestTimesMs[this.selectedCourseIndex] = n;
             b = true;
         }
-        if (this.gameMode == 2 && this.selectedCourseIndex < 7 && this.gameCanvas.x < this.gameCanvas.I && n > 0L) {
+        if (this.gameMode == 2 && this.selectedCourseIndex < 7 && this.gameCanvas.stuntLivesLost < this.gameCanvas.stuntLivesTotal && n > 0L) {
             if (this.selectedCourseIndex == this.unlockedCourseCount - 1) {
                 ++this.unlockedCourseCount;
             }
@@ -136,11 +136,11 @@ public class LevelManager implements CommandListener
         }
         this.hideContinueItem = true;
         this.pauseGameCanvas();
-        if (this.gameMode == 2 && this.gameCanvas.x < this.gameCanvas.I) {
+        if (this.gameMode == 2 && this.gameCanvas.stuntLivesLost < this.gameCanvas.stuntLivesTotal) {
             if (this.selectedCourseIndex < 7) {
                 if (n > 0L) {
                     ++this.selectedCourseIndex;
-                    this.gameCanvas.new();
+                    this.gameCanvas.tickStuntCupLife();
                 }
                 this.enterPlayMode();
             }
@@ -328,7 +328,7 @@ public class LevelManager implements CommandListener
                 String str2 = null;
                 String str3 = null;
                 Label_1078: {
-                    switch (this.gameCanvas.x) {
+                    switch (this.gameCanvas.stuntLivesLost) {
                         case 0: {
                             if (this.bestCupTier != 3) {
                                 this.bestCupTier = 3;
@@ -471,7 +471,7 @@ public class LevelManager implements CommandListener
                     switch (selectedIndex) {
                         case 0: {
                             this.hideContinueItem = true;
-                            this.gameCanvas.if();
+                            this.gameCanvas.resetStuntLives();
                             if (this.gameMode == 2) {
                                 this.selectedCourseIndex = 0;
                             }
@@ -531,10 +531,10 @@ public class LevelManager implements CommandListener
     private void enterPlayMode() {
         this.menuScreenId = 0;
         if (this.hideContinueItem) {
-            this.gameCanvas.a();
+            this.gameCanvas.startLevel();
         }
         else {
-            this.gameCanvas.goto();
+            this.gameCanvas.startGameLoopTimer();
         }
         this.pauseOverlayActive = false;
         this.showCanvas();
@@ -542,7 +542,7 @@ public class LevelManager implements CommandListener
     }
     
     protected void pauseGameCanvas() {
-        this.gameCanvas.do();
+        this.gameCanvas.shutdownGameLoopTimer();
         if (this.menuScreenId == 0) {
             this.menuScreenId = 3;
         }

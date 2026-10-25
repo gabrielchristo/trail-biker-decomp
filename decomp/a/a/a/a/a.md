@@ -46,7 +46,7 @@ Nomes sugeridos refletem o papel real; assinaturas originais entre parênteses.
 | `a(boolean)` | `setPaused` | `true` inicia pausa (guarda instante); `false` compensa `wallClockStartMs` pelo tempo pausado para o relógio não “andar” enquanto pausado. |
 | `a(Graphics, int, int)` | `paint` | Desenha `MM:SS` ou `MM:SS:CC` (se `showCentiseconds`) na posição `(x, y)` usando índices de sprite 0–9 e `10` como separador `:`. |
 | `a()` | `getPaintWidth` | Largura total do texto em pixels (4 “celas” de dígito + espaçamento, ou 7 se centésimos). |
-| `if()` | `getPaintHeight` | Altura de um dígito (`spriteSheet.frameHeight`). |
+| `if()` | `getPaintHeight` | Altura de um dígito (`digitSprites.frameHeight`). |
 
 ---
 

@@ -12,11 +12,11 @@ public class ParallaxBackground
     private int segmentWidthPx;
     private int scrollStepSign;
     
-    public ParallaxBackground(final String s, final int do1, final boolean b) {
+    public ParallaxBackground(final String imagePath, final int layerCount, final boolean clippedMode) {
         super();
-        this.layerCount = do1;
+        this.layerCount = layerCount;
         try {
-            this.spriteSheet = new SpriteSheet(Image.createImage(s), 1, do1, b);
+            this.spriteSheet = new SpriteSheet(Image.createImage(imagePath), 1, layerCount, clippedMode);
         }
         catch (Exception ex) {
             System.out.println("Image load failed " + ex.toString());

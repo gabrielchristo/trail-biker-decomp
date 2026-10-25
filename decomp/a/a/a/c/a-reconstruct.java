@@ -80,7 +80,7 @@ public class GameCanvas extends FullCanvas implements Runnable
     private String[] messageBuffer;
     private int messageIndex;
     
-    public GameCanvas(final TrailBikerMidlet b, final LevelManager o) {
+    public GameCanvas(final TrailBikerMidlet midlet, final LevelManager levelManager) {
         super();
         this.gameStateFlag = 0;
         this.screenWidth = 0;
@@ -91,9 +91,9 @@ public class GameCanvas extends FullCanvas implements Runnable
         this.gameLoopTask = null;
         this.needsBackgroundClear = true;
         this.messageBuffer = new String[6];
-        this.midlet = b;
-        this.levelManager = o;
-        this.gameMetadata = b.gameMetadata;
+        this.midlet = midlet;
+        this.levelManager = levelManager;
+        this.gameMetadata = midlet.gameMetadata;
         this.screenWidth = super.getWidth();
         this.screenHeight = super.getHeight();
         if (TrailBikerMidlet.deviceProfileId != 0 && TrailBikerMidlet.deviceProfileId != 4) {
@@ -343,7 +343,6 @@ public class GameCanvas extends FullCanvas implements Runnable
                         }
                         if (this.terrain.composedTileId != 10 && (this.levelManager.gameMode == 0 || this.gameClock.displayTimeMs > 0L) && (this.levelManager.gameMode != 2 || this.stuntLivesLost < this.stuntLivesTotal)) {
                             final long int1 = this.gameClock.displayTimeMs;
-                            final GameClock w = this.gameClock;
                             if (int1 < 599990L) {
                                 if (!this.stuntActive && !this.rampLandingActive) {
                                     this.updateBikeOnTerrain();
@@ -465,7 +464,6 @@ public class GameCanvas extends FullCanvas implements Runnable
                             }
                             else {
                                 final long int2 = this.gameClock.displayTimeMs;
-                                final a.a.a.a.a w2 = this.gameClock;
                                 if (int2 >= 599990L) {
                                     this.addEndGameFlag(4);
                                 }

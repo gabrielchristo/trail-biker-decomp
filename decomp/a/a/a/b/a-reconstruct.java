@@ -69,7 +69,7 @@ public class ScrollingTileLayer
                     break;
                 }
                 default: {
-                    this.tileSprites.a(this.tileMap[n2][n] - 1, this.bufferGraphics, n3, n4);
+                    this.tileSprites.drawFrame(this.tileMap[n2][n] - 1, this.bufferGraphics, n3, n4);
                     break;
                 }
             }

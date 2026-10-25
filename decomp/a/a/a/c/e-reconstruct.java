@@ -28,11 +28,11 @@ public class Motorbike
     public byte[][] wheelProbeTable;
     private BinaryAsset gameMetadata;
     
-    public Motorbike(final int b, final int void1, final BinaryAsset do1) {
+    public Motorbike(final int screenX, final int screenY, final BinaryAsset gameMetadata) {
         super();
-        this.screenX = b;
-        this.screenY = void1;
-        this.gameMetadata = do1;
+        this.screenX = screenX;
+        this.screenY = screenY;
+        this.gameMetadata = gameMetadata;
         try {
             this.bikeSprites = new SpriteSheet(Image.createImage("/res/bikes.png"), (int)this.gameMetadata.data[16], (int)this.gameMetadata.data[17], true);
         }
@@ -127,24 +127,24 @@ public class Motorbike
     }
     
     public void paint(final Graphics graphics) {
-        int byte1;
+        int spriteFrameIndex;
         if (this.bikeState == 5) {
-            byte1 = 21;
+            spriteFrameIndex = 21;
         }
         else if (this.inAirTrick) {
-            byte1 = this.trickFrameIndex;
+            spriteFrameIndex = this.trickFrameIndex;
         }
         else {
-            byte1 = this.poseFrameIndex + 3;
+            spriteFrameIndex = this.poseFrameIndex + 3;
         }
-        this.bikeSprites.drawFrame(byte1, graphics, this.screenX, this.screenY - this.spriteHeight);
+        this.bikeSprites.drawFrame(spriteFrameIndex, graphics, this.screenX, this.screenY - this.spriteHeight);
     }
     
-    public void advanceAirTrick(final int for1, final boolean b) {
+    public void advanceAirTrick(final int hopImpulse, final boolean resetTrickFrame) {
         if (!this.inAirTrick) {
-            this.trickDriftX = for1;
+            this.trickDriftX = hopImpulse;
             this.inAirTrick = true;
-            if (b) {
+            if (resetTrickFrame) {
                 this.trickFrameIndex = 0;
             }
             else {

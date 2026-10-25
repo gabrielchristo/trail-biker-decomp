@@ -29,8 +29,8 @@ O campo estático `a` (`deviceProfileId`) é lido em todo o projeto (`SpriteShee
 
 | Arquivo | Relação |
 |---------|---------|
-| [`a.a.a.c.c`](c.java) | `LevelManager` (`if`). Criado com `new LevelManager(this)`; recebe referência ao MIDlet. `try()` na pausa do MIDlet. |
-| [`a.a.a.c.a`](a.java) | Canvas em `LevelManager.gameCanvas` (decomp `int`). `destroyApp` chama `gameCanvas.do()`. |
+| [`a.a.a.c.c`](c.java) | `LevelManager`. Criado com `new LevelManager(this)`; `pauseApp` chama `handleMidletPause()`. |
+| [`a.a.a.c.a`](a.java) | Canvas em `LevelManager.gameCanvas`. `destroyApp` chama `gameCanvas.shutdownGameLoopTimer()`. |
 | [`a.a.a.e.a`](../e/a.java) | `BinaryAsset for` — tabela `metadata_mono.dat` compartilhada com o canvas (`P`). |
 | [`a.a.a.b.c`](../b/c.java) | Lê `f.a == 1` para hack de clip (valor **não** atribuído neste `f.java`; ramo provavelmente morto ou de outra build). |
 | [`a.a.a.c.e`](e.java), [`a.a.a.c.a`](a.java), [`a.a.a.c.c`](c.java) | Comparam `f.a` com `0`, `2`, `4` para layout e comportamento. |
@@ -51,8 +51,8 @@ O campo estático `a` (`deviceProfileId`) é lido em todo o projeto (`SpriteShee
 |----------|----------|-----------|
 | `f()` (construtor) | `TrailBikerMidlet()` | Carrega metadata, detecta plataforma, instancia `LevelManager`. |
 | `startApp()` | `startApp` | Vazio (MIDlet). |
-| `pauseApp()` | `pauseApp` | `levelManager.try()`; `notifyPaused()`. |
-| `destroyApp(boolean)` | `destroyApp` | `levelManager.gameCanvas.do()`; `setCurrent(null)`; anula refs; `gc`; `notifyDestroyed()`. |
+| `pauseApp()` | `pauseApp` | `levelManager.handleMidletPause()`; `notifyPaused()`. |
+| `destroyApp(boolean)` | `destroyApp` | `levelManager.gameCanvas.shutdownGameLoopTimer()`; `setCurrent(null)`; anula refs; `gc`; `notifyDestroyed()`. |
 | `a(String)` (static) | `noop` | Corpo vazio (placeholder / obfuscação). |
 | bloco `static` | `static` | Inicializa `deviceProfileId = 4`. |
 

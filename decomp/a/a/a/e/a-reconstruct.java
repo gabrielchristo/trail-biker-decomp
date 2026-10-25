@@ -8,9 +8,9 @@ public class BinaryAsset
     private String resourcePath;
     public byte[] data;
     
-    public BinaryAsset(final String if1) {
+    public BinaryAsset(final String resourcePath) {
         super();
-        this.loadFromResource(this.resourcePath = if1);
+        this.loadFromResource(this.resourcePath = resourcePath);
     }
     
     public int getUnsignedByte(final int n) {

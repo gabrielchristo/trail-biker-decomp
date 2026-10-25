@@ -12,12 +12,12 @@ Reconstrução legível: `a$a-reconstruct.java`
 
 ## Objetivo geral
 
-Classe interna **`TimerTask`** que dispara a cada **100 ms** e chama [`GameCanvas.else()`](a.java) no thread do timer. Esse método no canvas:
+Classe interna **`TimerTask`** que dispara a cada **100 ms** e chama `GameCanvas.onTimerTick()` no thread do timer. Esse método no canvas:
 
 1. Decrementa o contador de splash/diálogo (`try`) e remove comando quando chega a zero.
 2. Invoca **`run()`** do `FullCanvas` — o **loop principal do jogo** (física, scroll, repaint flags).
 
-Instanciada em `GameCanvas.goto()` (`startGameSession`): `this.null = new a.a(this, this)` — campo `null` do canvas guarda a referência. Encerrada em `GameCanvas.do()` (`shutdown`) via `null.a()` (cancela timer).
+Instanciada em `GameCanvas.startGameLoopTimer()`: `gameLoopTask = new CanvasGameLoopTask(this, this)`. Encerrada em `shutdownGameLoopTimer()` via `gameLoopTask.stop()`.
 
 Substitui um thread dedicado por `java.util.Timer` (comum em MIDlets).
 
@@ -26,7 +26,7 @@ Substitui um thread dedicado por `java.util.Timer` (comum em MIDlets).
 | Arquivo | Relação |
 |---------|---------|
 | [`a.a.a.c.a`](a.java) | Classe externa `GameCanvas`. Campos `null` (task), métodos `goto()` / `do()`, `else()` (tick agendado), `run()` (loop). |
-| [`a.a.a.c.c`](c.java) | `LevelManager` chama `gameCanvas.goto()` / `do()` ao entrar/sair da partida. |
+| [`a.a.a.c.c`](c.java) | `LevelManager` chama `gameCanvas.startGameLoopTimer()` / `shutdownGameLoopTimer()` ao entrar/sair da partida. |
 | `com.nokia.mid.ui.DeviceControl` | Ligado em `goto()` após criar o timer (luzes). |
 | `javax.microedition.lcdui.FullCanvas` | `run()` herdado — motor do frame. |
 
@@ -37,7 +37,7 @@ Substitui um thread dedicado por `java.util.Timer` (comum em MIDlets).
 | Original | Sugerido | Descrição |
 |----------|----------|-----------|
 | `a(a, a)` (construtor) | `CanvasGameLoopTask(GameCanvas, GameCanvas)` | Guarda referências ao canvas; cria `Timer` e agenda `this` com período **100 ms** (delay 0). |
-| `run()` | `run` | `canvas.else()` — tick MIDlet + loop. |
+| `run()` | `run` | `canvas.onTimerTick()` — tick MIDlet + loop. |
 | `a()` | `stop` | `cancel()` na task, `cancel()` no `Timer`, `timer = null`. |
 
 ---

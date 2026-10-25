@@ -69,9 +69,20 @@ Implementa `CommandListener` para OK / Back / Exit e seleção de listas.
 | `else()` | `showMenuScreen` | Monta List/Form conforme `menuScreenId`. |
 | `commandAction` | `commandAction` | Trata menus e navegação. |
 | `new()` (privado) | `enterPlayMode` | Inicia ou retoma partida no canvas. |
-| `int()` | `pauseGameCanvas` | Fecha sessão de jogo (`gameCanvas.do()`), ajusta menu. |
+| `int()` | `pauseGameCanvas` | Fecha sessão de jogo (`gameCanvas.shutdownGameLoopTimer()`), ajusta menu. |
 | `a()` (privado) | `showCanvas` | `setCurrent(gameCanvas)`. |
 | `try()` | `handleMidletPause` | Pausa: overlay de menu se ainda não pausado. |
+
+### API exposta em `GameCanvas` (reconstruct)
+
+| Método / campo | Chamado por `LevelManager` |
+|----------------|----------------------------|
+| `startGameLoopTimer()` | Construtor; `enterPlayMode` ao retomar |
+| `shutdownGameLoopTimer()` | `pauseGameCanvas` |
+| `startLevel()` | `enterPlayMode` (nova partida) |
+| `resetStuntLives()` | Menu Stunt Cup — continuar |
+| `tickStuntCupLife()` | `onRaceFinished` ao avançar curso |
+| `stuntLivesLost`, `stuntLivesTotal` | Menus e `onRaceFinished` |
 
 ---
 

@@ -17,7 +17,7 @@ protected class CanvasGameLoopTask extends TimerTask
     }
     
     public void run() {
-        this.canvas.else();
+        this.canvas.onTimerTick();
     }
     
     void stop() {

@@ -1,6 +1,6 @@
 package a.a.a.b;
 
-import a.a.a.c.f;
+import a.a.a.c.TrailBikerMidlet;
 import javax.microedition.lcdui.Graphics;
 import javax.microedition.lcdui.Image;
 
@@ -17,13 +17,13 @@ public class SpriteSheet
     public Image sourceImage;
     public boolean clippedMode;
     
-    public SpriteSheet(final Image new1, final int case1, final int byte1, final boolean try1) {
+    public SpriteSheet(final Image sourceImage, final int gridColumns, final int gridRows, final boolean clippedMode) {
         super();
-        this.clippedMode = try1;
-        this.sheetWidth = new1.getWidth();
-        this.sheetHeight = new1.getHeight();
-        this.gridColumns = case1;
-        this.gridRows = byte1;
+        this.clippedMode = clippedMode;
+        this.sheetWidth = sourceImage.getWidth();
+        this.sheetHeight = sourceImage.getHeight();
+        this.gridColumns = gridColumns;
+        this.gridRows = gridRows;
         this.frameCount = this.gridRows * this.gridColumns;
         this.frameHeight = this.sheetHeight / this.gridRows;
         this.frameWidth = this.sheetWidth / this.gridColumns;
@@ -33,46 +33,46 @@ public class SpriteSheet
             for (int i = 0; i < this.gridColumns; ++i) {
                 for (int j = 0; j < this.gridRows; ++j) {
                     this.slicedFrames[n] = Image.createImage(this.frameWidth, this.frameHeight);
-                    this.slicedFrames[n].getGraphics().drawImage(new1, -i * this.frameWidth, -j * this.frameHeight, 20);
+                    this.slicedFrames[n].getGraphics().drawImage(sourceImage, -i * this.frameWidth, -j * this.frameHeight, 20);
                     ++n;
                 }
             }
         }
         else {
-            this.sourceImage = new1;
+            this.sourceImage = sourceImage;
         }
     }
     
-    public void drawFrame(final int n, final Graphics graphics, final int n2, final int n3) {
+    public void drawFrame(final int frameIndex, final Graphics graphics, final int x, final int y) {
         if (!this.clippedMode) {
-            graphics.drawImage(this.slicedFrames[n], n2, n3, 20);
+            graphics.drawImage(this.slicedFrames[frameIndex], x, y, 20);
         }
         else {
-            int n4 = n2;
-            final int n5 = n2 - n / this.gridRows * this.frameWidth;
-            int n6 = n3;
-            final int n7 = n3 - this.frameHeight * (n % this.gridRows);
-            final int clipX = graphics.getClipX();
-            final int clipY = graphics.getClipY();
-            final int clipWidth = graphics.getClipWidth();
-            final int clipHeight = graphics.getClipHeight();
-            int if1 = this.frameWidth;
-            int do1 = this.frameHeight;
-            if (n4 < 0) {
-                if1 += n4;
-                n4 = 0;
+            int clipX = x;
+            final int drawX = x - frameIndex / this.gridRows * this.frameWidth;
+            int clipY = y;
+            final int drawY = y - this.frameHeight * (frameIndex % this.gridRows);
+            final int savedClipX = graphics.getClipX();
+            final int savedClipY = graphics.getClipY();
+            final int savedClipWidth = graphics.getClipWidth();
+            final int savedClipHeight = graphics.getClipHeight();
+            int clipWidth = this.frameWidth;
+            int clipHeight = this.frameHeight;
+            if (clipX < 0) {
+                clipWidth += clipX;
+                clipX = 0;
             }
-            if (n6 < 0) {
-                do1 += n6;
-                n6 = 0;
+            if (clipY < 0) {
+                clipHeight += clipY;
+                clipY = 0;
             }
-            if (f.a == 1) {
-                ++if1;
-                ++do1;
+            if (TrailBikerMidlet.deviceProfileId == 1) {
+                ++clipWidth;
+                ++clipHeight;
             }
-            graphics.setClip(n4, n6, if1, do1);
-            graphics.drawImage(this.sourceImage, n5, n7, 20);
             graphics.setClip(clipX, clipY, clipWidth, clipHeight);
+            graphics.drawImage(this.sourceImage, drawX, drawY, 20);
+            graphics.setClip(savedClipX, savedClipY, savedClipWidth, savedClipHeight);
         }
     }
 }

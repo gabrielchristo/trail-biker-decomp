@@ -38,7 +38,7 @@ Usada em todo o jogo para **tiles**, **motos**, **dígitos do relógio**, **spla
 | Original | Sugerido | Descrição |
 |----------|----------|-----------|
 | `c(Image, int, int, boolean)` (construtor) | `SpriteSheet(...)` | Calcula `frameWidth`/`frameHeight`, `frameCount`; pré-fatia ou guarda `sourceImage`. |
-| `a(int, Graphics, int, int)` | `drawFrame` | Desenha frame `n` em `(x, y)`. Modo clipe: salva clip, ajusta retângulo se `(x,y)` negativos, opcional +1 px se `f.a == 1`, desenha folha deslocada, restaura clip. |
+| `a(int, Graphics, int, int)` | `drawFrame` | Desenha frame `n` em `(x, y)`. Modo clipe: salva clip, ajusta retângulo se `(x,y)` negativos, opcional +1 px se `TrailBikerMidlet.deviceProfileId == 1`, desenha folha deslocada, restaura clip. |
 
 ---
 

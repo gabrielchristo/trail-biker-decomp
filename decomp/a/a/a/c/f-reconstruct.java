@@ -33,12 +33,12 @@ public class TrailBikerMidlet extends MIDlet
     }
     
     public void pauseApp() {
-        this.levelManager.try();
+        this.levelManager.handleMidletPause();
         this.notifyPaused();
     }
     
     public void destroyApp(final boolean b) {
-        this.levelManager.gameCanvas.do();
+        this.levelManager.gameCanvas.shutdownGameLoopTimer();
         Display.getDisplay((MIDlet)this).setCurrent((Displayable)null);
         this.levelManager = null;
         this.gameMetadata = null;
