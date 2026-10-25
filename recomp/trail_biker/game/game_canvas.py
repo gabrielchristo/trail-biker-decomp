@@ -158,7 +158,10 @@ class GameCanvas:
             self.configure_game_clock()
         else:
             self.game_clock.reset(self.game_mode != 0, 0, True)
-        self.crash_anim_active = True
+        # Original sets crashAnimActive here for metadata[64] ticks (20 × 100 ms).
+        # Physics is frozen while the wall clock still runs, so ~2 s are already
+        # on the timer when control starts. Start the race immediately instead.
+        self.crash_anim_active = False
         self.crash_anim_ticks = 0
         self.needs_background_clear = True
         self.reset_round_state()

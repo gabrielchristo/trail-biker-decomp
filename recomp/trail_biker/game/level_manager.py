@@ -9,7 +9,25 @@ from trail_biker.game.game_canvas import GameCanvas
 from trail_biker.game.levels import LevelStore
 from trail_biker.game.progress_store import ProgressStore
 from trail_biker.game.sound_manager import SoundManager
+from trail_biker.game.stunt_cup_awards import apply_stunt_cup_awards
 from trail_biker import ui_strings as ui
+
+
+def _format_time_ms(ms: int) -> str:
+    mins = int(ms // 1000 // 60)
+    secs = int(ms // 1000 % 60)
+    centis = int(ms // 10 % 100)
+    return f"{mins // 10}{mins % 10}:{secs // 10}{secs % 10}'{centis // 10}{centis % 10}"
+
+
+def _cup_tier_label(tier: int) -> str | None:
+    if tier == 1:
+        return ui.CUP_TIER_BRONZE
+    if tier == 2:
+        return ui.CUP_TIER_SILVER
+    if tier == 3:
+        return ui.CUP_TIER_GOLD
+    return None
 
 
 class LevelManager:
@@ -25,6 +43,7 @@ class LevelManager:
         self.hide_continue_item = True
         self.menu_index = 0
         self._menu_items: list[str] = []
+        self._form_lines: list[str] = []
         self.screen_width, self.screen_height = default_screen_size()
         self.game_canvas = GameCanvas(metadata, self.level_store, self)
         self._font: pygame.font.Font | None = None
@@ -50,6 +69,11 @@ class LevelManager:
     def get_unlocked_level_count(self) -> int:
         return self.progress.unlocked_course_count
 
+    def pause_game_canvas(self) -> None:
+        self.game_canvas.game_clock.set_paused(True)
+        if self.menu_screen_id == 0:
+            self.menu_screen_id = 3
+
     def enter_play_mode(self) -> None:
         self.menu_screen_id = 0
         self.showing_menu = False
@@ -61,10 +85,35 @@ class LevelManager:
         self.hide_continue_item = False
 
     def pause_from_game(self) -> None:
-        self.game_canvas.game_clock.set_paused(True)
-        if self.menu_screen_id == 0:
-            self.menu_screen_id = 3
+        self.pause_game_canvas()
         self._build_menu_items()
+        self.showing_menu = True
+        self.pause_overlay_active = True
+
+    def handle_midlet_pause(self) -> None:
+        if not self.pause_overlay_active:
+            self.pause_overlay_active = True
+            self.pause_game_canvas()
+            self._build_menu_items()
+            self.showing_menu = True
+
+    def _open_stunt_cup_award_screen(self) -> None:
+        title, unlock, changed = apply_stunt_cup_awards(
+            self.progress,
+            self.game_canvas.stunt_lives_lost,
+        )
+        if changed:
+            self.progress.save()
+        self._form_lines = []
+        if title:
+            self._form_lines.append(title)
+        if unlock:
+            self._form_lines.append(unlock)
+        if not self._form_lines:
+            self._form_lines.append("Stunt Cup complete!")
+        self.menu_screen_id = 6
+        self._menu_items = [ui.LABEL_BACK]
+        self.menu_index = 0
         self.showing_menu = True
         self.pause_overlay_active = True
 
@@ -88,7 +137,7 @@ class LevelManager:
         if saved:
             self.progress.save()
         self.hide_continue_item = True
-        self.game_canvas.game_clock.set_paused(True)
+        self.pause_game_canvas()
         if self.game_mode == 2 and canvas.stunt_lives_lost < canvas.stunt_lives_total:
             if idx < 7:
                 if time_delta > 0:
@@ -97,18 +146,28 @@ class LevelManager:
                 self.enter_play_mode()
                 return
             if time_delta > 0:
-                self.menu_screen_id = 6
-            else:
-                self.enter_play_mode()
+                self._open_stunt_cup_award_screen()
                 return
-        else:
-            self.menu_screen_id = 3
+            self.enter_play_mode()
+            return
+        self.menu_screen_id = 3
         self._build_menu_items()
         self.showing_menu = True
         self.pause_overlay_active = True
 
+    def _build_high_score_lines(self) -> list[str]:
+        lines: list[str] = []
+        tier = _cup_tier_label(self.progress.best_cup_tier)
+        if tier:
+            lines.append(f"Best Cup: {tier}")
+            lines.append("")
+        for i in range(self.get_unlocked_level_count()):
+            t = self.progress.best_times_ms[i]
+            lines.append(f"Course {i + 1}      {_format_time_ms(t)}")
+        return lines
+
     def _build_menu_items(self) -> None:
-        self._menu_items = []
+        self._form_lines = []
         if self.menu_screen_id == 1:
             self._menu_items = [
                 ui.MENU_PRACTICE,
@@ -118,29 +177,24 @@ class LevelManager:
                 ui.LABEL_EXIT,
             ]
         elif self.menu_screen_id == 2:
-            for i in range(self.get_unlocked_level_count()):
-                self._menu_items.append(f"Course {i + 1}")
+            self._menu_items = [f"Course {i + 1}" for i in range(self.get_unlocked_level_count())]
         elif self.menu_screen_id == 3:
+            self._menu_items = []
             if not self.hide_continue_item:
                 self._menu_items.append(ui.MENU_CONTINUE)
             self._menu_items.extend(["New Game", ui.MENU_INSTRUCTIONS])
         elif self.menu_screen_id == 4:
-            self._menu_items = ["High Scores — see terminal log"]
-            for i in range(self.get_unlocked_level_count()):
-                t = self.progress.best_times_ms[i]
-                mins = int(t // 1000 // 60)
-                secs = int(t // 1000 % 60)
-                centis = int(t // 10 % 100)
-                self._menu_items.append(f"Course {i + 1}: {mins // 10}{mins % 10}:{secs // 10}{secs % 10}'{centis // 10}{centis % 10}")
+            self._menu_items = [ui.LABEL_BACK]
+            self._form_lines = self._build_high_score_lines()
         elif self.menu_screen_id == 5:
-            self._menu_items = [
-                "2/Down - accelerate",
-                "5/Up - brake",
-                "1/3 - hop / wheelie in air",
-                "Land on two wheels on logs.",
-            ]
+            self._menu_items = [ui.LABEL_BACK]
+            self._form_lines = list(ui.INSTRUCTIONS_LINES)
         elif self.menu_screen_id == 6:
-            self._menu_items = ["Stunt Cup complete!", ui.LABEL_BACK]
+            if not self._form_lines:
+                self._form_lines = ["Stunt Cup complete!"]
+            self._menu_items = [ui.LABEL_BACK]
+        else:
+            self._menu_items = []
         self.menu_index = min(self.menu_index, max(0, len(self._menu_items) - 1))
 
     def open_main_menu(self) -> None:
@@ -158,6 +212,10 @@ class LevelManager:
                 self.pause_from_game()
             return
         if not self.showing_menu:
+            return
+        if self.menu_screen_id in (4, 5, 6):
+            if event.key in (pygame.K_RETURN, pygame.K_SPACE):
+                self._menu_back()
             return
         if event.key in (pygame.K_UP, pygame.K_w):
             self.menu_index = (self.menu_index - 1) % len(self._menu_items)
@@ -194,7 +252,7 @@ class LevelManager:
                 self.hide_continue_item = True
                 self.enter_play_mode()
                 return
-            if label in ("New Game", ui.MENU_PRACTICE):
+            if label == "New Game":
                 self.hide_continue_item = True
                 self.game_canvas.reset_stunt_lives()
                 if self.game_mode == 2:
@@ -216,12 +274,11 @@ class LevelManager:
             else:
                 self.menu_screen_id = 1
             self.hide_continue_item = True
-        elif self.menu_screen_id in (4, 5):
-            self.menu_screen_id = 1
-        elif self.menu_screen_id == 6:
+        elif self.menu_screen_id in (4, 5, 6):
             self.menu_screen_id = 1
         else:
             self.showing_menu = False
+            self.pause_overlay_active = False
             self.game_canvas.game_clock.set_paused(False)
             return
         self._build_menu_items()
@@ -238,15 +295,29 @@ class LevelManager:
             title = ui.MENU_SELECT_COURSE
         elif self.menu_screen_id == 3:
             title = "Pause"
+        elif self.menu_screen_id == 4:
+            title = ui.MENU_HIGH_SCORES
+        elif self.menu_screen_id == 5:
+            title = ui.MENU_INSTRUCTIONS
+        elif self.menu_screen_id == 6:
+            title = ui.MENU_STUNT_CUP
         logical.blit(self._font.render(title, True, (255, 255, 255)), (8, 8))
         y = 28
+        for line in self._form_lines:
+            logical.blit(self._font.render(line, True, (210, 210, 220)), (8, y))
+            y += 14
+            if y > self.screen_height - 28:
+                break
+        if self._form_lines:
+            y += 4
         for i, item in enumerate(self._menu_items):
             color = (255, 220, 80) if i == self.menu_index else (200, 200, 200)
             prefix = "> " if i == self.menu_index else "  "
             logical.blit(self._font.render(prefix + item, True, color), (8, y))
             y += 16
+        hint = "Enter/Esc=Back" if self.menu_screen_id in (4, 5, 6) else "Up/Down Enter  Esc=Back"
         logical.blit(
-            self._font.render("Up/Down Enter  Esc=Back", True, (140, 140, 160)),
+            self._font.render(hint, True, (140, 140, 160)),
             (8, self.screen_height - 14),
         )
         scaled = pygame.transform.scale(logical, (self.screen_width * SCALE, self.screen_height * SCALE))

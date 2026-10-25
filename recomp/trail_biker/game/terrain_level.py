@@ -195,9 +195,12 @@ class TerrainLevel:
                 surface = 0
             if surface == 0:
                 scan_y += self.tile_size_px
+            elif y <= scan_y + self.tile_size_px:
+                # Probe is inside this cell: this is the surface (wood bench, ground, …).
+                # The decompiled `continue` never advanced the scan and either hung or
+                # skipped the obstacle and collided with the tile underneath.
+                break
             else:
-                if y <= scan_y + self.tile_size_px:
-                    continue
                 scan_y += self.tile_size_px
                 surface = 0
         if surface != 0:

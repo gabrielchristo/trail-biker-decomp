@@ -34,6 +34,8 @@ def main() -> None:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 running = False
+            elif event.type == pygame.WINDOWFOCUSLOST:
+                manager.handle_midlet_pause()
             elif event.type == pygame.KEYDOWN:
                 if manager.showing_menu:
                     manager.handle_event(event)
