@@ -328,8 +328,7 @@ class LevelManager:
             self.game_canvas.update(dt_ms)
 
     def draw(self, target: pygame.Surface) -> None:
-        if self.showing_menu:
-            self.game_canvas.draw(target)
+        self.game_canvas.draw(target)
+        # Keep end-game overlays visible (do not cover with pause/menu chrome).
+        if self.showing_menu and not self.game_canvas.end_game_flags:
             self.draw_menu(target)
-        else:
-            self.game_canvas.draw(target)

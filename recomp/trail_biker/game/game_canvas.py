@@ -184,7 +184,6 @@ class GameCanvas:
         self.playfield_ready = True
         self.splash_phase = -1
         self.race_end_handled = False
-        self.end_game_flags = 0
         self.race_finish_dispatched = False
 
     def reset_round_state(self) -> None:
@@ -216,6 +215,8 @@ class GameCanvas:
             self.parallax_scroll_period >>= 1
             self.stunt_air_delay_threshold >>= 2
             self.trick_cooldown_max >>= 2
+        # a.java null(): "Course N" overlay at round start (flag 16).
+        self.add_end_game_flag(16)
         self._sync_present()
 
     def _capture_present(self) -> _Present:
@@ -408,8 +409,10 @@ class GameCanvas:
             else:
                 best = lm.get_best_time_ms(lm.selected_course_index)
                 par = lm.get_par_time_from_dat(lm.selected_course_index)
-                if (lm.game_mode == 1 and self.game_clock.display_time_ms > 0) or (
-                    lm.game_mode == 2 and best - self.game_clock.display_time_ms < par
+                remaining = self.game_clock.display_time_ms
+                # a.java: mode 1 → countdown left; mode 2 → par - remaining < best (elapsed beats save)
+                if (lm.game_mode == 1 and remaining > 0) or (
+                    lm.game_mode == 2 and par - remaining < best
                 ):
                     self.add_end_game_flag(2)
                 else:
@@ -591,7 +594,9 @@ class GameCanvas:
                 self._finish_race_callback()
             else:
                 self.end_game_anim_timer += 1
-            return
+            # a.java: intro crash (R) still runs while course banner (g) ticks down.
+            if not self.crash_anim_active:
+                return
         if self.crash_anim_active:
             intro_ticks = int(self.game_metadata.data[64])
             if self.crash_anim_ticks > intro_ticks:
@@ -674,16 +679,41 @@ class GameCanvas:
                 self._present_curr = self._capture_present()
             self._logic_accum -= LOGIC_TICK_MS
 
+    def _in_game_overlay_center_logical(self) -> tuple[int, int]:
+        """Center on the live playfield (parallax + terrain), not the full 208px logical canvas."""
+        d = self.game_metadata.data
+        terrain_bottom = int(d[4]) + int(d[3])
+        visible_bottom = max(terrain_bottom, int(d[2]))
+        return self.screen_width // 2, visible_bottom // 2
+
     def draw_centered_banner(self, text: str, surface: pygame.Surface | None = None) -> None:
+        """MIDlet a.java do() + a(Graphics,...): small box on top of live gameplay."""
         dest = self.logical if surface is None else surface
-        if self._banner_font is None:
-            self._banner_font = pygame.font.SysFont(None, 16)
-        w, h = self.screen_width, self.screen_height // 3
-        y0 = self.screen_height // 2 - h // 2
-        pygame.draw.rect(dest, (0, 0, 0), (0, y0, w, h))
-        pygame.draw.rect(dest, (255, 255, 255), (0, y0, w, h), 1)
-        surf = self._banner_font.render(text, True, (255, 255, 255))
-        dest.blit(surf, (w // 2 - surf.get_width() // 2, y0 + h // 2 - surf.get_height() // 2))
+        on_logical = dest.get_width() == self.screen_width and dest.get_height() == self.screen_height
+        scale = 1 if on_logical else max(1, dest.get_width() // self.screen_width)
+        pad = 4 * scale
+        font_px = max(8, 8 * scale)
+        font = pygame.font.SysFont(None, font_px)
+        text_surf = font.render(text, True, (0, 0, 0))
+        box_w = text_surf.get_width() + pad * 2
+        box_h = text_surf.get_height() + pad * 2
+        cx, cy = self._in_game_overlay_center_logical()
+        if on_logical:
+            x0 = cx - box_w // 2
+            y0 = cy - box_h // 2
+        else:
+            x0 = cx * scale - box_w // 2
+            y0 = cy * scale - box_h // 2
+        radius = min(4 * scale, box_w // 4, box_h // 4)
+        pygame.draw.rect(dest, (255, 255, 255), (x0, y0, box_w, box_h), border_radius=radius)
+        pygame.draw.rect(
+            dest,
+            (0, 0, 0),
+            (x0, y0, box_w, box_h),
+            max(1, scale),
+            border_radius=radius,
+        )
+        dest.blit(text_surf, (x0 + pad, y0 + pad))
 
     def draw_stunt_lives(self, surface: pygame.Surface | None = None) -> None:
         dest = self.logical if surface is None else surface
@@ -715,7 +745,13 @@ class GameCanvas:
         self.draw_stunt_lives(self._hud)
         hud = pygame.transform.scale(self._hud, (self.screen_width * SCALE, self.screen_height * SCALE))
         target.blit(hud, (0, 0))
+        self._draw_end_game_overlay(target)
         self.needs_background_clear = False
+
+    def _draw_end_game_overlay(self, surface: pygame.Surface) -> None:
+        msg = self._end_game_message()
+        if msg and self.end_game_flags:
+            self.draw_centered_banner(msg, surface)
 
     def draw(self, target: pygame.Surface) -> None:
         if self._use_presentation():
@@ -737,8 +773,6 @@ class GameCanvas:
                 self.motorbike.paint(self.logical)
             self.game_clock.paint(self.logical, 0, 0)
             self.draw_stunt_lives()
-            msg = self._end_game_message()
-            if msg and self.end_game_flags:
-                self.draw_centered_banner(msg)
+            self._draw_end_game_overlay(self.logical)
         scaled = pygame.transform.scale(self.logical, (self.screen_width * SCALE, self.screen_height * SCALE))
         target.blit(scaled, (0, 0))
