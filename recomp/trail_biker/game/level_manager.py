@@ -3,7 +3,11 @@ from __future__ import annotations
 import pygame
 
 from trail_biker.assets.game_metadata import GameMetadata
-from trail_biker.config import SCALE
+from trail_biker.config import UI_FONT_MENU_BODY
+from trail_biker.config import UI_FONT_MENU_HINT
+from trail_biker.config import UI_FONT_MENU_TITLE
+from trail_biker.config import WINDOW_HEIGHT
+from trail_biker.config import WINDOW_WIDTH
 from trail_biker.config import default_screen_size
 from trail_biker.game.game_canvas import GameCanvas
 from trail_biker.game.levels import LevelStore
@@ -286,10 +290,13 @@ class LevelManager:
     def draw_menu(self, target: pygame.Surface) -> None:
         if not self.showing_menu:
             return
-        if self._font is None:
-            self._font = pygame.font.SysFont(None, 14)
-        logical = pygame.Surface((self.screen_width, self.screen_height))
-        logical.fill((32, 32, 64))
+        game_w, game_h = WINDOW_WIDTH, WINDOW_HEIGHT
+        panel = pygame.Surface((game_w, game_h), pygame.SRCALPHA)
+        panel.fill((32, 32, 64, 235))
+        title_font = pygame.font.SysFont(None, UI_FONT_MENU_TITLE)
+        body_font = pygame.font.SysFont(None, UI_FONT_MENU_BODY)
+        hint_font = pygame.font.SysFont(None, UI_FONT_MENU_HINT)
+        margin = max(16, game_w // 22)
         title = ui.GAME_TITLE
         if self.menu_screen_id == 2:
             title = ui.MENU_SELECT_COURSE
@@ -301,27 +308,28 @@ class LevelManager:
             title = ui.MENU_INSTRUCTIONS
         elif self.menu_screen_id == 6:
             title = ui.MENU_STUNT_CUP
-        logical.blit(self._font.render(title, True, (255, 255, 255)), (8, 8))
-        y = 28
+        panel.blit(title_font.render(title, True, (255, 255, 255)), (margin, margin))
+        line_gap = UI_FONT_MENU_BODY + 6
+        y = margin + UI_FONT_MENU_TITLE + 8
         for line in self._form_lines:
-            logical.blit(self._font.render(line, True, (210, 210, 220)), (8, y))
-            y += 14
-            if y > self.screen_height - 28:
+            panel.blit(body_font.render(line, True, (210, 210, 220)), (margin, y))
+            y += line_gap
+            if y > game_h - margin * 2:
                 break
         if self._form_lines:
-            y += 4
+            y += 8
         for i, item in enumerate(self._menu_items):
             color = (255, 220, 80) if i == self.menu_index else (200, 200, 200)
             prefix = "> " if i == self.menu_index else "  "
-            logical.blit(self._font.render(prefix + item, True, color), (8, y))
-            y += 16
+            panel.blit(body_font.render(prefix + item, True, color), (margin, y))
+            y += line_gap
         hint = "Enter/Esc=Back" if self.menu_screen_id in (4, 5, 6) else "Up/Down Enter  Esc=Back"
-        logical.blit(
-            self._font.render(hint, True, (140, 140, 160)),
-            (8, self.screen_height - 14),
-        )
-        scaled = pygame.transform.scale(logical, (self.screen_width * SCALE, self.screen_height * SCALE))
-        target.blit(scaled, (0, 0))
+        hint_surf = hint_font.render(hint, True, (140, 140, 160))
+        panel.blit(hint_surf, (margin, game_h - margin - hint_surf.get_height()))
+        if target.get_width() == WINDOW_WIDTH and target.get_height() == WINDOW_HEIGHT:
+            target.blit(panel, (0, 0))
+        else:
+            target.blit(pygame.transform.scale(panel, (target.get_width(), target.get_height())), (0, 0))
 
     def update(self, dt_ms: float) -> None:
         if not self.showing_menu:

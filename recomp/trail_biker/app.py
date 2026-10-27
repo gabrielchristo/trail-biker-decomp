@@ -9,8 +9,8 @@ from trail_biker.config import METADATA_PATH
 from trail_biker.config import SOUND_PATH
 from trail_biker.config import FPS
 from trail_biker.config import RESOURCES
-from trail_biker.config import SCALE
-from trail_biker.config import default_screen_size
+from trail_biker.config import WINDOW_HEIGHT
+from trail_biker.config import WINDOW_WIDTH
 from trail_biker.game.level_manager import LevelManager
 
 
@@ -23,8 +23,7 @@ def main() -> None:
     pygame.init()
     if not pygame.mixer.get_init():
         pygame.mixer.init(frequency=8000, size=-8, channels=1, buffer=512)
-    screen_w, screen_h = default_screen_size()
-    pygame.display.set_mode((screen_w * SCALE, screen_h * SCALE))
+    pygame.display.set_mode((WINDOW_WIDTH, WINDOW_HEIGHT))
     pygame.display.set_caption("Trail Biker")
     if not METADATA_PATH.is_file():
         print(f"Missing metadata: {METADATA_PATH}", file=sys.stderr)

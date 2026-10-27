@@ -10,7 +10,6 @@ from trail_biker.config import DEVICE_PROFILE_ID
 from trail_biker.config import LOGIC_TICK_MS
 from trail_biker.config import VISUAL_INTERPOLATION
 from trail_biker.config import RESOURCES
-from trail_biker.config import SCALE
 from trail_biker.config import default_screen_size
 from trail_biker.game.game_clock import GameClock
 from trail_biker.game.levels import LevelStore
@@ -19,6 +18,8 @@ from trail_biker.game.parallax_background import ParallaxBackground
 from trail_biker.game.terrain_level import TerrainLevel
 from trail_biker.gfx.images import load_logical_image
 from trail_biker.gfx.present import blit_logical
+from trail_biker.gfx.present import draw_playfield_message
+from trail_biker.gfx.present import present_logical_frame
 from trail_biker.gfx.sprite_sheet import SpriteSheet
 from trail_biker import ui_strings as ui
 
@@ -686,35 +687,6 @@ class GameCanvas:
         visible_bottom = max(terrain_bottom, int(d[2]))
         return self.screen_width // 2, visible_bottom // 2
 
-    def draw_centered_banner(self, text: str, surface: pygame.Surface | None = None) -> None:
-        """MIDlet a.java do() + a(Graphics,...): small box on top of live gameplay."""
-        dest = self.logical if surface is None else surface
-        on_logical = dest.get_width() == self.screen_width and dest.get_height() == self.screen_height
-        scale = 1 if on_logical else max(1, dest.get_width() // self.screen_width)
-        pad = 4 * scale
-        font_px = max(8, 8 * scale)
-        font = pygame.font.SysFont(None, font_px)
-        text_surf = font.render(text, True, (0, 0, 0))
-        box_w = text_surf.get_width() + pad * 2
-        box_h = text_surf.get_height() + pad * 2
-        cx, cy = self._in_game_overlay_center_logical()
-        if on_logical:
-            x0 = cx - box_w // 2
-            y0 = cy - box_h // 2
-        else:
-            x0 = cx * scale - box_w // 2
-            y0 = cy * scale - box_h // 2
-        radius = min(4 * scale, box_w // 4, box_h // 4)
-        pygame.draw.rect(dest, (255, 255, 255), (x0, y0, box_w, box_h), border_radius=radius)
-        pygame.draw.rect(
-            dest,
-            (0, 0, 0),
-            (x0, y0, box_w, box_h),
-            max(1, scale),
-            border_radius=radius,
-        )
-        dest.blit(text_surf, (x0 + pad, y0 + pad))
-
     def draw_stunt_lives(self, surface: pygame.Surface | None = None) -> None:
         dest = self.logical if surface is None else surface
         if self.game_mode != 2 or not self.lives_image:
@@ -734,24 +706,36 @@ class GameCanvas:
         world_x = _lerp(prev.world_x, curr.world_x, t)
         bike_y = _lerp(prev.bike_y, curr.bike_y, t)
         parallax = _lerp(prev.parallax, curr.parallax, t)
-        target.fill((255, 255, 255))
-        self.parallax.paint_unwrapped(target, 0, 0, parallax, self.screen_width)
-        self.terrain.paint_camera(target, world_x)
+        lw, lh = self.screen_width, self.screen_height
+        self.logical.fill((255, 255, 255))
+        self.parallax.paint_unwrapped(self.logical, 0, 0, parallax, lw)
+        self.terrain.paint_camera(self.logical, world_x)
         if not self.ramp_landing_active:
             frame = self.motorbike.bike_sprites.frame_surface(self.motorbike.current_frame())
-            blit_logical(target, frame, self.motorbike.screen_x, bike_y - self.motorbike.sprite_height)
-        self._hud.fill((0, 0, 0, 0))
-        self.game_clock.paint(self._hud, 0, 0)
-        self.draw_stunt_lives(self._hud)
-        hud = pygame.transform.scale(self._hud, (self.screen_width * SCALE, self.screen_height * SCALE))
-        target.blit(hud, (0, 0))
+            blit_logical(
+                self.logical,
+                frame,
+                self.motorbike.screen_x,
+                bike_y - self.motorbike.sprite_height,
+                lw,
+                lh,
+            )
+        self.game_clock.paint(self.logical, 0, 0)
+        self.draw_stunt_lives(self.logical)
+        present_logical_frame(target, self.logical, lw, lh)
         self._draw_end_game_overlay(target)
         self.needs_background_clear = False
 
     def _draw_end_game_overlay(self, surface: pygame.Surface) -> None:
         msg = self._end_game_message()
         if msg and self.end_game_flags:
-            self.draw_centered_banner(msg, surface)
+            draw_playfield_message(
+                surface,
+                msg,
+                self._in_game_overlay_center_logical(),
+                self.screen_width,
+                self.screen_height,
+            )
 
     def draw(self, target: pygame.Surface) -> None:
         if self._use_presentation():
@@ -759,8 +743,9 @@ class GameCanvas:
             return
         self.logical.fill((0, 0, 0))
         if self.splash_phase != -1 and self.splash_sprites:
-            y = self.screen_height // 2 - self.splash_sprites.frame_height // 2
-            self.splash_sprites.draw_frame(self.splash_phase, self.logical, 0, y)
+            x = (self.screen_width - self.splash_sprites.frame_width) // 2
+            y = (self.screen_height - self.splash_sprites.frame_height) // 2
+            self.splash_sprites.draw_frame(self.splash_phase, self.logical, x, y)
         elif self.playfield_ready and self.terrain and self.parallax and self.motorbike:
             d = self.game_metadata.data
             if self.needs_background_clear:
@@ -773,6 +758,5 @@ class GameCanvas:
                 self.motorbike.paint(self.logical)
             self.game_clock.paint(self.logical, 0, 0)
             self.draw_stunt_lives()
-            self._draw_end_game_overlay(self.logical)
-        scaled = pygame.transform.scale(self.logical, (self.screen_width * SCALE, self.screen_height * SCALE))
-        target.blit(scaled, (0, 0))
+        present_logical_frame(target, self.logical, self.screen_width, self.screen_height)
+        self._draw_end_game_overlay(target)
